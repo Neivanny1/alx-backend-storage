@@ -5,7 +5,10 @@ Python function that lists all documents in a collection
 
 
 def list_all(mongo_collection):
-    documents = mongo_collection.find()
-    if documents.count() == 0:
+    """
+    List all documents in the collection mongo_collection
+    """
+    documents = mongo_collection.find({})
+    if documents.count_documents({}) == 0:
         return []
-    return documents
+    return list(documents)
