@@ -30,4 +30,4 @@ def analyse_nginx_logs(mongo_collection, option=None):
 
 if __name__ == "__main__":
     nginx_collection = MongoClient('mongodb://127.0.0.1:27017').logs.nginx
-    log_stats(nginx_collection)
+    analyse_nginx_logs(nginx_collection)
