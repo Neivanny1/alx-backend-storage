@@ -9,5 +9,5 @@ def schools_by_topic(mongo_collection, topic):
     """
     Retrieving list of matching items
     """
-    alls = mongo_collection.find({"topics": topic})
+    results = mongo_collection.find({"topics": topic})
     return [result for result in results]
