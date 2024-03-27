@@ -5,6 +5,7 @@ Redis with python
 import redis
 import uuid
 from typing import Union, Callable
+import functools
 
 
 class Cache():
@@ -15,6 +16,16 @@ class Cache():
         self._redis = redis.Redis()
         self._redis.flushdb()
 
+    @functools.wraps
+    def count_calls(method: Callable):
+        @functools.wraps(method)
+        def wrapper(self, *args, **kwargs):
+            key = method.__qualname__
+            self._redis.incr(key)
+            return method(self, *args, **kwargs)
+        return wrapper
+
+    @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         '''
         function store that return a string
@@ -29,7 +40,7 @@ class Cache():
         Takes in key and optional fn then
         converts data to desired format
         '''
-        self._redis.get(key)
+        data = self._redis.get(key)
         if fn:
             return fn(data)
         return data
