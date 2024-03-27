@@ -38,16 +38,10 @@ class Cache():
         """
         Transform a redis type variable to a str python type
         """
-        variable = self._redis.get(key)
-        return variable.decode("UTF-8")
+        return self.get(key, lambda x: x.decode('utf-8'))
 
     def get_int(self, key: str) -> int:
         """
         Transform a redis type variable to a str python type
         """
-        variable = self._redis.get(key)
-        try:
-            variable = int(variable.decode("UTF-8"))
-        except Exception:
-            variable = 0
-        return variable
+        return self.get(key, int)
