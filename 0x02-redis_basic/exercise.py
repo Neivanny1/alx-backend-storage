@@ -4,7 +4,7 @@ Redis with python
 """
 import redis
 import uuid
-from typing import Union
+from typing import Union, Callable
 
 
 class Cache():
@@ -22,3 +22,31 @@ class Cache():
         key = str(uuid.uuid4())
         self._redis.set(key, data)
         return key
+    
+    def get(self, key : str, fn: callable=None) -> Union[str, bytes, int, float]:
+        '''
+        Takes in key and optional fn then
+        converts data to desired format
+        '''
+        self._redis.get(key)
+        if fn:
+            return fn(data)
+        return data
+
+    def get_str(self, key: str) -> str:
+        """
+        Transform a redis type variable to a str python type
+        """
+        variable = self._redis.get(key)
+        return variable.decode("UTF-8")
+
+    def get_int(self, key: str) -> int:
+        """
+        Transform a redis type variable to a str python type
+        """
+        variable = self._redis.get(key)
+        try:
+            variable = int(variable.decode("UTF-8"))
+        except Exception:
+            variable = 0
+        return variable
