@@ -5,7 +5,63 @@ Redis with python
 import redis
 import uuid
 from typing import Union, Callable
-import functools
+from functools import wraps
+
+
+def count_calls(method: Callable) -> Callable:
+    """
+    decorator that takes Callable as argument
+    returns a Callable
+    """
+    key = method.__qualname__
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+    return wrapper
+
+
+def call_history(method: Callable) -> Callable:
+    """
+    stores the history of inputs and
+    outputs for a particular function
+    """
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        input_key = method.__qualname__ + ":inputs"
+        output_key = method.__qualname__ + ":outputs"
+        output = method(self, *args, **kwargs)
+        self._redis.rpush(input_key, str(args))
+        self._redis.rpush(output_key, str(output))
+        return output
+    return wrapper
+
+
+def replay(fn: Callable):
+    """
+    Display the history of calls of a particular function
+    """
+    r = redis.Redis()
+    f_name = fn.__qualname__
+    n_calls = r.get(f_name)
+    try:
+        n_calls = n_calls.decode('utf-8')
+    except Exception:
+        n_calls = 0
+    print(f'{f_name} was called {n_calls} times:')
+    ins = r.lrange(f_name + ":inputs", 0, -1)
+    outs = r.lrange(f_name + ":outputs", 0, -1)
+    for i, o in zip(ins, outs):
+        try:
+            i = i.decode('utf-8')
+        except Exception:
+            i = ""
+        try:
+            o = o.decode('utf-8')
+        except Exception:
+            o = ""
+        print(f'{f_name}(*{i}) -> {o}')
 
 
 class Cache():
@@ -15,27 +71,6 @@ class Cache():
     def __init__(self) -> None:
         self._redis = redis.Redis()
         self._redis.flushdb()
-
-    @functools.wraps
-    def count_calls(method: Callable):
-        @functools.wraps(method)
-        def wrapper(self, *args, **kwargs):
-            key = method.__qualname__
-            self._redis.incr(key)
-            return method(self, *args, **kwargs)
-        return wrapper
-
-    @functools.wraps
-    def call_history(method: Callable):
-        @functools.wraps(method)
-        def wrapper(self, *args, **kwargs):
-            input_key = method.__qualname__ + ":inputs"
-            output_key = method.__qualname__ + ":outputs"
-            self._redis.rpush(input_key, str(args))
-            output = method(self, *args, **kwargs)
-            self._redis.rpush(output_key, str(output))
-            return output
-        return wrapper
 
     @call_history
     @count_calls
